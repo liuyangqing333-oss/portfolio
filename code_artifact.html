@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yangqing LIU - Graphic Designer</title>
+    <style>
+        /* ==========================================
+           1. 基础重置与全局变量
+           ========================================== */
+        :root {
+            --bg-color: #ffffff;
+            --text-main: #000000;
+            --text-muted: #888888;
+            --font-stack: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            --nav-height: 80px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-stack);
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-size: 11px; /* 极简风标志性的小字体 */
+            line-height: 1.4;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+            cursor: pointer;
+        }
+
+        img {
+            max-width: 100%;
+            display: block;
+        }
+
+        /* 隐藏滚动条但保留滚动功能 */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* ==========================================
+           2. 预加载入场动画 (Splash Screen)
+           ========================================== */
+        #preloader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background-color: var(--bg-color);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.8s cubic-bezier(0.645, 0.045, 0.355, 1), 
+                        visibility 0.8s;
+        }
+
+        .preloader-img {
+            width: 300px; /* 稍微调大一点，更具冲击力 */
+            height: 200px;
+            object-fit: cover;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards;
+        }
+
+        .preloader-title {
+            position: absolute;
+            bottom: -3vw;
+            width: 100%;
+            text-align: center;
+            font-size: 21vw;
+            font-weight: 900;
+            letter-spacing: -0.04em;
+            line-height: 0.8;
+            white-space: nowrap;
+            opacity: 0;
+            transform: translateY(50px);
+            animation: fadeUp 1s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+        }
+
+        body.is-loaded #preloader {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        /* ==========================================
+           3. 全局导航栏 (Header)
+           ========================================== */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: var(--nav-height);
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            background-color: rgba(255, 255, 255, 0.95);
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.8s ease 0.5s, transform 0.8s ease 0.5s;
+        }
+
+        body.is-loaded .navbar {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .nav-col {
+            flex: 1;
+        }
+
+        .nav-col.left { text-align: left; font-weight: 600; }
+        .nav-col.center { 
+            text-align: center; 
+            display: flex; 
+            justify-content: center; 
+        }
+        .nav-col.right { text-align: right; }
+
+        .logo-svg {
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+        }
+
+        .nav-links span {
+            color: var(--text-muted);
+        }
+        
+        .nav-links a {
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            text-decoration: underline;
+        }
+
+        /* ==========================================
+           4. 页面视图切换容器
+           ========================================== */
+        .view-container {
+            width: 100%;
+            min-height: calc(100vh - var(--nav-height));
+            padding-top: var(--nav-height);
+            display: none; 
+            opacity: 0;
+        }
+
+        .view-container.active {
+            display: block;
+            opacity: 1;
+            transition: opacity 1s ease;
+        }
+
+        .project-view.active {
+            display: flex;
+            animation: none;
+            opacity: 1;
+        }
+
+        .about-view.active {
+            display: flex;
+        }
+
+        @keyframes fadeInView {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ==========================================
+           5. 首页：紧凑错落画廊 (Flex Column Masonry)
+           ========================================== */
+        .gallery-view {
+            padding: calc(var(--nav-height) + 40px) 40px 100px 40px;
+        }
+
+        .gallery-wrapper {
+            display: flex;
+            gap: 40px; 
+            align-items: flex-start; 
+        }
+
+        .gallery-col {
+            display: flex;
+            flex-direction: column;
+            gap: 50px; 
+        }
+
+        .col-25 { flex: 2.8; } 
+        .col-40 { flex: 3.2; } 
+        .col-15 { flex: 2.2; } 
+        .col-30 { flex: 1.8; } 
+
+        .grid-item {
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .img-wrapper {
+            overflow: hidden; 
+            background-color: #f5f5f5;
+            width: 100%;
+        }
+
+        .img-wrapper img {
+            width: 100%;
+            height: auto;
+            display: block;
+            transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1); 
+            transform-origin: center;
+        }
+
+        .grid-item:hover .img-wrapper img {
+            transform: scale(1.04); 
+        }
+
+        .item-info {
+            margin-top: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        
+        .item-title {
+            font-weight: 700;
+        }
+        .item-tags {
+            color: var(--text-muted);
+            text-align: right;
+            max-width: 50%;
+        }
+
+        /* ==========================================
+           6. 详情页：左侧固定，右侧大图
+           ========================================== */
+        .project-view {
+            padding: calc(var(--nav-height) + 20px) 40px 100px 40px;
+            gap: 60px;
+        }
+
+        .project-sidebar {
+            width: 25%;
+            position: sticky;
+            top: var(--nav-height);
+            height: calc(100vh - var(--nav-height));
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-thumb {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: cover;
+            margin-bottom: 60px;
+            background-color: #f0f0f0;
+        }
+
+        .meta-block {
+            margin-bottom: 30px;
+        }
+
+        .meta-label {
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .meta-value {
+            font-weight: 700;
+            font-size: 11px;
+        }
+
+        .meta-desc {
+            font-weight: 400;
+            font-size: 12px;
+            line-height: 1.6;
+            margin-top: 6px;
+        }
+
+        .project-content {
+            width: 75%;
+        }
+
+        .project-content img {
+            width: 100%;
+            margin-bottom: 20px;
+            background-color: #f5f5f5;
+        }
+
+        /* ==========================================
+           6.5. 个人简介页 (About View) - 完美复刻
+           ========================================== */
+        .about-view {
+            padding: calc(var(--nav-height) + 20px) 40px 100px 40px;
+            gap: 60px;
+        }
+
+        .about-sidebar {
+            width: 35%;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end; /* 让内容在左下角对齐，匹配截图视觉 */
+            padding-bottom: 20px;
+        }
+
+        .about-text {
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 1.6;
+            max-width: 85%;
+        }
+
+        .about-links {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .about-links a {
+            font-weight: 700;
+            display: inline-block;
+        }
+
+        .about-links a:hover {
+            text-decoration: underline;
+        }
+
+        .about-content {
+            width: 65%;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .about-content img {
+            width: 100%;
+            height: auto;
+            max-height: 80vh;
+            object-fit: cover;
+            background-color: #f5f5f5;
+        }
+
+        /* ==========================================
+           7. 巨型黑色页脚 (Footer) - 完美复刻与防遮挡优化
+           ========================================== */
+        .site-footer {
+            background-color: #000000;
+            color: #ffffff;
+            width: 100%;
+            min-height: 45vh; /* 给予更富余的黑色呼吸空间 */
+            padding: 40px 30px 0 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            z-index: 10;
+        }
+
+        .footer-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .back-to-top {
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: 300;
+            transition: opacity 0.3s ease;
+        }
+
+        .back-to-top:hover {
+            opacity: 0.7;
+        }
+
+        .footer-bottom {
+            margin-top: auto;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            padding-bottom: 20px; /* 增加底部垫高，防止任何浏览器底栏遮挡 */
+        }
+
+        .footer-title {
+            font-size: 18vw; /* 微调字体大小使其适应整个宽度 */
+            font-weight: 900;
+            text-transform: uppercase; /* 转换为大写：消除 g/q 等下行字母被截断的物理缺陷，更加具有现代主义设计感 */
+            letter-spacing: -0.04em;
+            line-height: 0.85; /* 微调行高，给字符四周保留足够的安全渲染空间 */
+            white-space: nowrap;
+            cursor: default;
+            user-select: none;
+            display: inline-block;
+        }
+
+        /* ==========================================
+           7.5 页面跳转过渡 (Page Transition)
+           ========================================== */
+        #page-transition-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #ffffff;
+            z-index: 10001; /* 确保在所有元素之上 */
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.8s cubic-bezier(0.645, 0.045, 0.355, 1);
+        }
+
+        #page-transition-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* ==========================================
+           8. 响应式布局 (Mobile)
+           ========================================== */
+        @media (max-width: 800px) {
+            .gallery-wrapper { flex-wrap: wrap; }
+            .gallery-col { flex: 1 1 45% !important; }
+            
+            .project-view { flex-direction: column; gap: 20px; }
+            .project-view.active { display: flex; flex-direction: column; gap: 20px; }
+            .project-sidebar { width: 100%; position: relative; top: 0; height: auto; }
+            .sidebar-thumb { width: 50%; margin-bottom: 30px; }
+            .project-content { width: 100%; padding-top: 0; }
+            
+            .about-view { flex-direction: column-reverse; gap: 40px; padding-top: calc(var(--nav-height) + 20px); }
+            .about-sidebar { width: 100%; justify-content: flex-start; }
+            .about-content { width: 100%; }
+            .about-text { max-width: 100%; }
+
+            .preloader-title { font-size: 22vw; bottom: 5vh; }
+            .site-footer { min-height: 35vh; }
+            .footer-title { font-size: 20vw; }
+        }
+
+        @media (max-width: 500px) {
+            .gallery-col { flex: 1 1 100% !important; }
+            .nav-col.center { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1. 入场预加载 -->
+    <div id="preloader">
+        <img id="flash-img" class="preloader-img" src="小食光_1.jpg" alt="Flash Image">
+        <div class="preloader-title">Yangqing Liu</div>
+    </div>
+
+    <!-- 2. 全局导航栏 -->
+    <nav class="navbar">
+        <div class="nav-col left">
+            Graphic Designer<br>
+            Yangqing LIU
+        </div>
+        <div class="nav-col center">
+            <svg class="logo-svg" viewBox="0 0 100 100" onclick="goToHome()">
+                <circle cx="50" cy="50" r="45" fill="none" stroke="#000" stroke-width="8"/>
+                <text x="32" y="65" font-family="Arial" font-size="45" font-weight="bold" fill="#000">Y</text>
+            </svg>
+        </div>
+        <div class="nav-col right nav-links">
+            <a href="mailto:2115579593@qq.com">2115579593@qq.com</a><br>
+            <a onclick="goToHome()" id="nav-projects-btn" style="color: #000; font-weight: bold;">Projects</a>, 
+            <a onclick="goToAbout()" id="nav-about-btn" style="color: var(--text-muted);">About</a>
+        </div>
+    </nav>
+
+    <!-- 3. 首页视图 -->
+    <main id="view-home" class="view-container active gallery-view">
+        <div class="gallery-wrapper">
+            
+            <!-- 第一列 -->
+            <div class="gallery-col col-25">
+                <div class="grid-item" onclick="goToProject('project1')">
+                    <div class="img-wrapper">
+                        <img src="小食光_1.jpg" alt="小食光">
+                    </div>
+                    <div class="item-info">
+                        <div class="item-title">小食光｜儿童训练筷品牌及包装设计</div>
+                        <div class="item-tags">#产品设计 #包装设计 #品牌设计</div>
+                    </div>
+                </div>
+                <div class="grid-item" onclick="goToProject('project5')">
+                    <div class="img-wrapper">
+                         <img src="绘本项目封面.png" alt="山里的朋友">
+                    </div>
+                    <div class="item-info">
+                         <div class="item-title">山里的朋友 ｜ 绘本设计</div>
+                         <div class="item-tags">#绘本设计 #插画艺术 #原创故事</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 第二列 -->
+            <div class="gallery-col col-40">
+                <div class="grid-item" onclick="goToProject('project3')">
+                    <div class="img-wrapper">
+                        <img src="边几资源1.png" alt="卵石感温边几">
+                    </div>
+                    <div class="item-info">
+                        <div class="item-title">卵石感温边几｜家居产品设计</div>
+                        <div class="item-tags">#智能家居 #疗愈设计 #产品设计</div>
+                    </div>
+                </div>
+                <div class="grid-item" onclick="goToProject('project4')">
+                    <div class="img-wrapper">
+                        <img src="双枪-01.jpg" alt="双枪伴手礼">
+                    </div>
+                    <div class="item-info">
+                        <div class="item-title">双枪 ｜ 周年庆伴手礼包装优化</div>
+                        <div class="item-tags">#包装设计 #品牌升级 #礼品优化</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 第三列 -->
+            <div class="gallery-col col-15">
+                <div class="grid-item" onclick="goToProject('project2')">
+                    <div class="img-wrapper">
+                        <img src="ScreenShot_2026-05-23_225345_159.png" alt="半日闲茶具">
+                    </div>
+                    <div class="item-info">
+                        <div class="item-title">半日闲｜手工陶瓷茶具</div>
+                        <div class="item-tags">#品牌视觉 #产品企划 #摄影排版</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 第四列 -->
+            <div class="gallery-col col-30">
+                <div class="grid-item" onclick="goToProject('project6')">
+                    <div class="img-wrapper">
+                        <img src="信息媒体设计理论及应用-01.jpg" alt="智学云镜">
+                    </div>
+                    <div class="item-info">
+                        <div class="item-title">智学云镜 ｜ 学情诊断系统</div>
+                        <div class="item-tags">#交互设计 #可视化</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- 4. 详情页视图 -->
+    <main id="view-project1" class="view-container project-view">
+        <aside class="project-sidebar">
+            <img class="sidebar-thumb" src="ChatGPT Image 2026年4月28日 14_36_15.png" alt="项目封面">
+            
+            <div class="meta-block">
+                <div class="meta-label">项目名称 (Project Name)</div>
+                <div class="meta-value">小食光｜会发声的儿童训练筷品牌及包装设计</div>
+            </div>
+            
+            <div class="meta-block">
+                <div class="meta-label">项目标签 (Tags)</div>
+                <div class="meta-value">产品设计、包装设计、品牌设计</div>
+            </div>
+            
+            <div class="meta-block">
+                <div class="meta-label">项目描述 (Description)</div>
+                <div class="meta-desc">
+
+                    「小食光」是一款面向儿童进餐启蒙阶段的趣味训练筷品牌设计项目。
+
+                    项目以“小和与小光”的温暖故事为品牌核心，将儿童餐桌上的用筷练习转化为一次轻松、有趣且富有陪伴感的“小食光冒险”。产品采用儿童友好的PPSU材质，兼具轻盈、耐用与安全触感；通过顶部发声装置、约3.5cm辅助圈口与10.5cm展开弧度设计，帮助孩子在夹取食物的过程中获得即时反馈，降低初学用筷的挫败感，提升手部协调与抓握稳定性。
+
+                    视觉设计延续“温暖东方、童趣自然、安心专业”的品牌调性，以米杏、枣红、暖橙等柔和色彩构建亲切的儿童餐桌氛围。包装部分结合双童IP形象、产品结构展示、说明卡与练习纸设计，让产品不仅是餐具工具，也成为亲子互动与儿童餐桌教育的一部分。
+
+                    整体项目从品牌故事、产品功能、IP视觉、包装陈列到使用场景进行系统化呈现，旨在打造一款既具实用训练价值，又具有情感陪伴属性的儿童训练筷产品。
+                </div>
+            </div>
+        </aside>
+
+        <section class="project-content">
+            <img src="小食光_1.jpg" alt="小食光 1">
+            <img src="小食光_2.jpg" alt="小食光 2">
+            <img src="小食光_3.jpg" alt="小食光 3">
+            <img src="小食光_4.jpg" alt="小食光 4">
+            <img src="小食光_5.jpg" alt="小食光 5">
+            <img src="小食光_6.jpg" alt="小食光 6">
+            <img src="小食光_7.jpg" alt="小食光 7">
+            <img src="小食光_8.jpg" alt="小食光 8">
+            <img src="小食光_9.jpg" alt="小食光 9">
+            <img src="小食光_10.jpg" alt="小食光 10">
+            <img src="小食光_11.jpg" alt="小食光 11">
+            <img src="小食光_12.jpg" alt="小食光 12">
+            <img src="小食光_13.jpg" alt="小食光 13">
+            <img src="小食光_14.jpg" alt="小食光 14">
+            <img src="小食光_15.jpg" alt="小食光 15">
+            <img src="小食光_16.jpg" alt="小食光 16">
+            <img src="小食光_17.jpg" alt="小食光 17">
+            <img src="小食光_18.jpg" alt="小食光 18">
+            <img src="小食光_19.jpg" alt="小食光 19">
+            <img src="小食光_20.jpg" alt="小食光 20">
+            <img src="小食光_21.jpg" alt="小食光 21">
+        </section>
+    </main>
+
+    <!-- 4.5. 个人简介视图 (About View) - 完美复刻 -->
+    <main id="view-about" class="view-container about-view">
+        <aside class="about-sidebar">
+            <div class="meta-block">
+                <div class="meta-label">About me</div>
+                <div class="about-text">
+                    平面设计师，专注于品牌形象设计、网格系统实验与视觉排版开发。致力于探索实体介质与数字屏幕之间的边界，使用极简主义设计语言为品牌创造长久而深刻的视觉资产。
+                </div>
+            </div>
+
+            <div class="meta-block">
+                <div class="meta-label">Contact me</div>
+                <div class="about-text">
+                    2115579593@qq.com<br>
+                    +86 138 0000 0000
+                </div>
+            </div>
+
+            <div class="meta-block">
+                <div class="meta-label">My socials</div>
+                <div class="about-links">
+                    <a href="#" target="_blank">LinkedIn</a>
+                    <a href="#" target="_blank">Instagram</a>
+                    <a href="#" target="_blank">Behance</a>
+                </div>
+            </div>
+        </aside>
+        
+        <section class="about-content">
+            <!-- 使用用户提供的个人照片 -->
+            <img src="微信图片_20260527183550_864_36.jpg" alt="Yangqing LIU Portrait">
+        </section>
+    </main>
+
+    <!-- Placeholder project views for project2 to project6 -->
+    <main id="view-project2" class="view-container project-view">
+        <aside class="project-sidebar">
+            <img class="sidebar-thumb" src="30edbc8f-c777-42df-9d01-b4df84b8f3e0.png" alt="项目封面">
+            
+            <div class="meta-block">
+                <div class="meta-label">项目名称 (Project Name)</div>
+                <div class="meta-value">半日闲｜手工陶瓷茶具</div>
+            </div>
+            
+            <div class="meta-block">
+                <div class="meta-label">项目标签 (Tags)</div>
+                <div class="meta-value">品牌视觉、产品企划、摄影排版</div>
+            </div>
+            
+            <div class="meta-block">
+                <div class="meta-label">项目描述 (Description)</div>
+                <div class="meta-desc">
+                    本项目为"半日闲"手工陶瓷茶具打造完整的视觉企划。以"一器一物，自然素朴"为核心理念，通过大面积留白与静谧的光影摄影，细腻展现器物（壶、杯、盖碗）的肌理细节与东方雅韵。整体视觉剥离多余装饰，还原茶具本身的温度，传达"自然慢延"的生活哲学与审美格调。
+                </div>
+            </div>
+        </aside>
+
+        <section class="project-content">
+            <img src="茶壶 - 副本_画板 1.jpg" alt="半日闲茶具">
+            <!-- 如果有更多茶具图片，可以在此继续添加 -->
+        </section>
+    </main>
+    <main id="view-project3" class="view-container project-view">
+        <aside class="project-sidebar">
+            <img class="sidebar-thumb" src="边几资源9.png" alt="项目封面">
+            
+            <div class="meta-block">
+                <div class="meta-label">项目名称 (Project Name)</div>
+                <div class="meta-value">卵石感温边几｜家居产品设计</div>
+            </div>
+            
+            <div class="meta-block">
+                <div class="meta-label">项目标签 (Tags)</div>
+                <div class="meta-value">智能家居、疗愈设计、产品设计</div>
+            </div>
+            
+            <div class="meta-block">
+                <div class="meta-label">项目描述 (Description)</div>
+                <div class="meta-desc">
+                    用户在睡前或夜间饮水时，常常难以判断热水是否适合入口：刚倒出的水容易烫口，需要反复试温；放置一段时间后又容易被遗忘，错过最佳饮用温度。夜间起身取水时，黑暗环境下杯子位置不清晰，也存在误碰、打翻的风险。同时，床边常放置书本、眼镜、手机等小物，普通床头柜容易显得杂乱，缺少兼顾功能与情绪体验的设计。<br><br>
+                    针对这些痛点，本产品以“卵石感温边几”为核心概念，将床边桌、感温杯位、余温光晕与置物托盘结合。桌面右侧设置微下沉式“温泉眼”杯位，稳定承托水杯并明确感温区域；杯位周围通过三层余温光晕表达水温变化，高温时提示等待，适饮时柔和亮起，余温阶段逐渐变淡，帮助用户自然感知水温。下层置物托盘可收纳睡前常用物品，保持床边整洁。整体以圆润卵石造型和温暖木质语言营造疗愈氛围，使产品既具备实用功能，也能融入卧室生活场景。
+                </div>
+            </div>
+        </aside>
+
+        <section class="project-content">
+            <img src="边几资源1.png" alt="卵石感温边几 1">
+            <img src="边几资源2.png" alt="卵石感温边几 2">
+            <img src="边几资源3.png" alt="卵石感温边几 3">
+            <img src="边几资源4.png" alt="卵石感温边几 4">
+            <img src="边几资源5.png" alt="卵石感温边几 5">
+            <img src="边几资源6.png" alt="卵石感温边几 6">
+            <img src="边几资源7.png" alt="卵石感温边几 7">
+            <img src="边几资源8.png" alt="卵石感温边几 8">
+            <img src="边几资源9.png" alt="卵石感温边几 9">
+            <img src="边几资源10.jpg" alt="卵石感温边几 10">
+             <img src="边几资源11.png" alt="卵石感温边几 11">
+             <img src="边几资源12.png" alt="卵石感温边几 12">
+             <img src="边几资源13.png" alt="卵石感温边几 13">
+         </section>
+    </main>
+    <main id="view-project4" class="view-container project-view">
+        <aside class="project-sidebar">
+            <img class="sidebar-thumb" src="双枪封面.png" alt="项目封面">
+            
+            <div class="meta-block">
+                <div class="meta-label">项目名称 (Project Name)</div>
+                <div class="meta-value">双枪 ｜ 周年庆伴手礼包装优化</div>
+            </div>
+            
+            <div class="meta-block">
+                <div class="meta-label">项目标签 (Tags)</div>
+                <div class="meta-value">包装设计、品牌升级、礼品优化</div>
+            </div>
+            
+            <div class="meta-block">
+                <div class="meta-label">项目描述 (Description)</div>
+                <div class="meta-desc">
+                    本项目针对双枪品牌周年庆伴手礼进行包装优化设计。通过对原包装的深度分析，保留了核心的“孔雀”符号元素，并进行了现代化的图形重构。
+                    <br><br>
+                    优化重点在于提升视觉的美感与档次感，同时改变包装结构，大幅优化礼盒开启的舒适度与仪式感，使其更符合“周年庆礼品”的定位。整体设计旨在通过精致的插画与考究的结构，为用户带来优雅、尊贵的拆礼体验。
+                </div>
+            </div>
+        </aside>
+
+        <section class="project-content">
+            <img src="双枪-01.jpg" alt="双枪 01">
+            <img src="双枪-02.jpg" alt="双枪 02">
+            <img src="双枪-03.jpg" alt="双枪 03">
+            <img src="双枪-04.jpg" alt="双枪 04">
+            <img src="双枪-05.jpg" alt="双枪 05">
+            <img src="双枪-06.jpg" alt="双枪 06">
+            <img src="双枪-07.jpg" alt="双枪 07">
+            <img src="双枪-08.jpg" alt="双枪 08">
+            <img src="双枪-09.jpg" alt="双枪 09">
+            <img src="双枪-10.jpg" alt="双枪 10">
+            <img src="双枪-11.jpg" alt="双枪 11">
+            <img src="双枪-12.jpg" alt="双枪 12">
+            <img src="双枪-13.jpg" alt="双枪 13">
+            <img src="双枪-14.jpg" alt="双枪 14">
+            <img src="双枪-15.jpg" alt="双枪 15">
+            <img src="双枪-16.jpg" alt="双枪 16">
+            <img src="双枪-17.jpg" alt="双枪 17">
+            <img src="双枪-18.jpg" alt="双枪 18">
+            <img src="双枪-19.jpg" alt="双枪 19">
+            <img src="双枪-20.jpg" alt="双枪 20">
+        </section>
+    </main>
+    <main id="view-project5" class="view-container project-view">
+        <aside class="project-sidebar">
+            <img class="sidebar-thumb" src="绘本项目封面.png" alt="项目封面">
+            
+            <div class="meta-block">
+                <div class="meta-label">项目名称 (Project Name)</div>
+                <div class="meta-value">山里的朋友 ｜ 绘本设计</div>
+            </div>
+            
+            <div class="meta-block">
+                <div class="meta-label">项目标签 (Tags)</div>
+                <div class="meta-value">绘本设计、插画艺术、原创故事</div>
+            </div>
+            
+            <div class="meta-block">
+                <div class="meta-label">项目描述 (Description)</div>
+                <div class="meta-desc">
+                    这是一个关于等待、回应与陪伴的故事。献给每一个曾在安静里，悄悄期待朋友到来的人。
+                    <br><br>
+                    故事讲述了住在山洞里的少年“苔生”，总能听见风、石头和草叶的细语。起雾的月夜前，他写下叶子请帖，想请山里的朋友来洞中聚会。一路上，他帮点朱修巢、替阿石搭路、为月耳遮光、给松伯解铃。雨夜里，他以为无人会来，却听见朋友们踏雾而至。
+                </div>
+            </div>
+        </aside>
+
+        <section class="project-content">
+            <img src="绘本-01.jpg" alt="绘本 01">
+            <img src="绘本-02.jpg" alt="绘本 02">
+            <img src="绘本-03.jpg" alt="绘本 03">
+            <img src="绘本-04.jpg" alt="绘本 04">
+            <img src="绘本-05.jpg" alt="绘本 05">
+            <img src="绘本-06.jpg" alt="绘本 06">
+            <img src="绘本-07.jpg" alt="绘本 07">
+            <img src="绘本-08.jpg" alt="绘本 08">
+            <img src="绘本-09.jpg" alt="绘本 09">
+            <img src="绘本-10.jpg" alt="绘本 10">
+            <img src="绘本-11.jpg" alt="绘本 11">
+            <img src="绘本-12.jpg" alt="绘本 12">
+            <img src="绘本-13.jpg" alt="绘本 13">
+            <img src="绘本-14.jpg" alt="绘本 14">
+        </section>
+    </main>
+    <main id="view-project6" class="view-container project-view">
+        <aside class="project-sidebar">
+            <img class="sidebar-thumb" src="信息媒体设计理论及应用-01.jpg" alt="项目封面">
+            
+            <div class="meta-block">
+                <div class="meta-label">项目名称 (Project Name)</div>
+                <div class="meta-value">智学云镜 ｜ 学情诊断系统</div>
+            </div>
+            
+            <div class="meta-block">
+                <div class="meta-label">项目标签 (Tags)</div>
+                <div class="meta-value">交互设计、可视化</div>
+            </div>
+            
+            <div class="meta-block">
+                <div class="meta-label">项目描述 (Description)</div>
+                <div class="meta-desc">
+                    “智学云镜”是一款面向教育领域的智能化化学情分析与诊断系统。通过大数据技术与人工智能算法，为每位学生构建全方位、多维度的学习画像。
+                    <br><br>
+                    产品深度融合教学场景，将复杂的学情数据转化为直观、可操作的洞察，帮助教师精准施教、学生高效学习、管理者科学决策，推动教育个性化与公平化发展。
+                </div>
+            </div>
+        </aside>
+
+        <section class="project-content">
+            <img src="信息媒体设计理论及应用-01.jpg" alt="智学云镜 01">
+            <img src="信息媒体设计理论及应用-02.jpg" alt="智学云镜 02">
+            <img src="信息媒体设计理论及应用-03.jpg" alt="智学云镜 03">
+            <img src="信息媒体设计理论及应用-04.jpg" alt="智学云镜 04">
+            <img src="信息媒体设计理论及应用-05.jpg" alt="智学云镜 05">
+            <img src="信息媒体设计理论及应用-06.png" alt="智学云镜 06">
+            <img src="信息媒体设计理论及应用-07.jpg" alt="智学云镜 07">
+            <img src="信息媒体设计理论及应用-08.png" alt="智学云镜 08">
+            <img src="信息媒体设计理论及应用-09.jpg" alt="智学云镜 09">
+            <img src="信息媒体设计理论及应用-10.png" alt="智学云镜 10">
+            <img src="信息媒体设计理论及应用-11.jpg" alt="智学云镜 11">
+            <img src="信息媒体设计理论及应用-12.png" alt="智学云镜 12">
+            <img src="信息媒体设计理论及应用-13.jpg" alt="智学云镜 13">
+            <img src="信息媒体设计理论及应用-14.jpg" alt="智学云镜 14">
+        </section>
+    </main>
+
+    <!-- 5. 巨型黑色页脚 (完美复刻与防截断) -->
+    <footer class="site-footer">
+        <div class="footer-top">
+            <div class="copyright">© 2026</div>
+            <div class="back-to-top" onclick="scrollToTop()">↑</div>
+        </div>
+        <div class="footer-bottom">
+            <!-- 优化为大写格式，调整行高与安全内边距，完全消除字母被截断的问题 -->
+            <div class="footer-title">YANGQING</div>
+        </div>
+    </footer>
+
+    <!-- 页面跳转过渡层 -->
+    <div id="page-transition-overlay"></div>
+
+    <script>
+        // 1. 入场预加载逻辑
+        const projectCovers = [
+            '小食光_1.jpg',
+            'ScreenShot_2026-05-23_225345_159.png',
+            '边几资源1.png',
+            '双枪封面.png',
+            '绘本项目封面.png',
+            '信息媒体设计理论及应用-01.jpg',
+            '小食光_2.jpg',
+            '边几资源9.png'
+        ];
+
+        const flashImg = document.getElementById('flash-img');
+        let currentIdx = 0;
+
+        // 图片闪烁轮播逻辑
+        const flashInterval = setInterval(() => {
+            currentIdx = (currentIdx + 1) % projectCovers.length;
+            flashImg.src = projectCovers[currentIdx];
+        }, 150); // 每150ms闪过一张图
+
+        setTimeout(() => {
+            clearInterval(flashInterval); // 停止闪烁
+            document.body.classList.add('is-loaded');
+        }, 2000);
+
+        // 2. 视图与导航控制
+        const homeView = document.getElementById('view-home');
+        const aboutView = document.getElementById('view-about');
+        const projectsBtn = document.getElementById('nav-projects-btn');
+        const aboutBtn = document.getElementById('nav-about-btn');
+        const transitionOverlay = document.getElementById('page-transition-overlay');
+
+        // 更新导航激活状态
+        function updateNavState(activeBtn) {
+            projectsBtn.style.color = 'var(--text-muted)';
+            projectsBtn.style.fontWeight = 'normal';
+            aboutBtn.style.color = 'var(--text-muted)';
+            aboutBtn.style.fontWeight = 'normal';
+
+            activeBtn.style.color = '#000000';
+            activeBtn.style.fontWeight = 'bold';
+        }
+
+        // 统一的跳转过渡逻辑
+        function performTransition(callback) {
+            transitionOverlay.classList.add('active');
+            
+            setTimeout(() => {
+                // 执行实际的视图切换
+                callback();
+                // 切换后立即回到顶部
+                window.scrollTo(0, 0);
+                
+                // 给浏览器一点点时间渲染新视图，然后淡出遮罩
+                setTimeout(() => {
+                    transitionOverlay.classList.remove('active');
+                }, 100);
+            }, 800); // 与 CSS 中的 transition 时间 0.8s 保持一致
+        }
+
+        // 跳转到项目详情
+        function goToProject(projectId) {
+            performTransition(() => {
+                // 隐藏所有项目视图
+                const allProjects = document.querySelectorAll('.view-container.project-view');
+                allProjects.forEach(v => v.classList.remove('active'));
+                
+                // 隐藏其他板块
+                homeView.classList.remove('active');
+                aboutView.classList.remove('active');
+
+                // 显示目标项目
+                const target = document.getElementById(`view-${projectId}`);
+                if (target) {
+                    target.classList.add('active');
+                }
+                updateNavState(projectsBtn);
+            });
+        }
+
+        // 返回首页
+        function goToHome() {
+            performTransition(() => {
+                const allProjects = document.querySelectorAll('.view-container.project-view');
+                allProjects.forEach(v => v.classList.remove('active'));
+                aboutView.classList.remove('active');
+                homeView.classList.add('active');
+                updateNavState(projectsBtn);
+            });
+        }
+
+        // 跳转到关于页面
+        function goToAbout() {
+            performTransition(() => {
+                const allProjects = document.querySelectorAll('.view-container.project-view');
+                allProjects.forEach(v => v.classList.remove('active'));
+                homeView.classList.remove('active');
+                aboutView.classList.add('active');
+                updateNavState(aboutBtn);
+            });
+        }
+
+        // 回到顶部
+        function scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+    </script>
+</body>
+</html>
